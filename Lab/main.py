@@ -30,6 +30,9 @@ def upload_file():
             filename = secure_filename(file.filename)
             file.save(pathlib.Path(app.config['UPLOAD_FOLDER'], filename))
             return redirect(url_for('upload_file', name=filename))
+        else:
+            flash('Файл не правильного формата')
+            return redirect(request.url)
     return render_template('Home.html')
 
 
