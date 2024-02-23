@@ -1,40 +1,39 @@
-import pathlib
-from flask import Flask, flash, request, redirect, url_for, render_template
-from werkzeug.utils import secure_filename
+from pathlib import Path
+from flask import Flask
+from flask import make_response
+from flask import send_file
+from flask import render_template
+import Config
 
-#Путь папки для загрузки
-UPLOAD_FOLDER = 'C:\\Users\\svyat\\OneDrive\\Рабочий стол\\'
-#Разрешённые форматы
-ALLOWED_EXTENSIONS = {'pdf'}
-
+# Creating an instance of the Flask class
 app = Flask(__name__)
-#Изменение параметра конфига
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-#Создание секретного ключа, для того чтобы работал flash
-app.secret_key = 'many random bytes'
-
-def allowed_file(filename):
-    """ Функция проверки расширения файла """
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        file = request.files['file']
-        if file.filename == '':
-            flash('Нет выбранного файла')
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(pathlib.Path(app.config['UPLOAD_FOLDER'], filename))
-            return redirect(url_for('upload_file', name=filename))
-        else:
-            flash('Файл не правильного формата')
-            return redirect(request.url)
+# The main page of the site
+@app.route('/')
+def main():
     return render_template('Home.html')
 
 
+# A non-existent page
+@app.route('/<text>')
+def error(text):
+    return make_response("Page not found", 400)
+
+
+# Button click processing
+@app.route("/Download")
+def download(filename='flask.pdf'):
+    # Path is used for multiplatform
+    safe_path = Path(app.config["UPLOAD_FOLDER"], filename)
+    try:
+        return send_file(safe_path, mimetype='application/pdf', as_attachment=True)
+    except FileNotFoundError:
+        # Output a message about the absence of a file
+        return make_response("File not found", 404)
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Downloading settings from a configuration file
+    app.config.from_object(Config.BaseConfig)
+    app.run()
